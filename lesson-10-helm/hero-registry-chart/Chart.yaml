@@ -1,0 +1,27 @@
+apiVersion: v2
+name: hero-registry-chart
+description: A Helm chart for the Hero Registry FastAPI application
+
+# A chart can be either an 'application' or a 'library' chart.
+# Application charts are deployable units, while library charts provide utilities.
+type: application
+
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and its templates.
+version: 0.1.0
+
+# This is the version number of the application being deployed. This version number should be
+# incremented each time you make changes to the application code.
+appVersion: "0.4.0" # Corresponds to the app version from Lesson 9
+
+# Optional: Maintainer information
+# maintainers:
+#   - name: Your Name
+#     email: your.email@example.com
+
+# Optional: Keywords for discoverability
+# keywords:
+#   - fastapi
+#   - python
+#   - hero
+#   - registry

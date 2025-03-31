@@ -1,0 +1,24 @@
+# Patterns to ignore when building packages.
+# This supports shell glob matching, relative path matching, and negation.
+# Example patterns:
+#
+# Chart Source Files
+*.swp
+*.swo
+*~
+# Used by Helm Lint / Test
+test/
+tests/
+# Editor Files
+.project
+.classpath
+.DS_Store
+# Common Tools/OS Files
+*.bak
+*.orig
+*~
+*.tmp
+# IDE specific files
+.idea/
+.vscode/
+# Add any other files or directories you want to exclude from the packaged chart.

@@ -1,0 +1,61 @@
+# Kubernetes Deployment Manifest (Lesson 5 Update)
+# Adds Persistent Volume Claim mount for storing data.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hero-registry-deployment
+  labels:
+    app: hero-registry
+spec:
+  # IMPORTANT: For volumes like ReadWriteOnce (RWO), you can only have 1 replica
+  # unless your storage solution and application logic handle concurrent writes safely.
+  # NFS with ReadWriteMany (RWX) *can* support multiple replicas, but file-based locking
+  # in our simple Python app might still cause issues. Let's reduce to 1 replica for simplicity
+  # while using file storage. Databases handle this better.
+  replicas: 1 # Reduced from 2 for RWO/simple file access safety
+  selector:
+    matchLabels:
+      app: hero-registry
+  template:
+    metadata:
+      labels:
+        app: hero-registry
+    spec:
+      containers:
+        - name: hero-registry-api
+          # IMPORTANT: Update this image tag when you build a new image with Lesson 5 code!
+          # Example: harbor.komebacklab.local/your-harbor-project/hero-registry:lesson-05
+          image: harbor.komebacklab.local/your-harbor-project/hero-registry:latest # Replace project name!
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: hero-registry-config
+            - secretRef:
+                name: hero-registry-secret
+
+          # --- Volume Mounts ---
+          # Define where the persistent volume should be mounted inside the container.
+          # Analogy: Connecting the Infinity Stone (Volume) to a specific gauntlet slot (Mount Path).
+          volumeMounts:
+            - name: hero-data-storage # Must match the volume name defined below.
+              # The path inside the container where the volume will be accessible.
+              # Our Python app writes to /data/heroes.json.
+              mountPath: /data
+
+      # --- Volumes Definition ---
+      # Define the volumes available to this Pod.
+      # Analogy: Declaring which Infinity Stones are available for this mission.
+      volumes:
+        # Define a volume named 'hero-data-storage'.
+        - name: hero-data-storage
+          # Specify that this volume uses a PersistentVolumeClaim.
+          persistentVolumeClaim:
+            # The name of the PVC created earlier. Must exist in the same namespace.
+            claimName: hero-registry-data-pvc
+
+      imagePullSecrets:
+        - name: harbor-creds # Secret for pulling image from Harbor (from Lesson 3)

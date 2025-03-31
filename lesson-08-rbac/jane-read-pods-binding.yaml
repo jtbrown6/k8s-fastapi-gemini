@@ -1,0 +1,28 @@
+# Kubernetes RoleBinding Manifest
+# Grants the permissions defined in a Role to a specific user, group, or service account
+# within a specific namespace.
+# Analogy: Officially assigning Agent Jane Foster the "Level 4 - Pod Viewer" clearance
+# for operations within the 'default' department (namespace).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding # Type of object: RoleBinding (connects Role to Subject in a namespace)
+metadata:
+  name: jane-read-pods-binding # Name of the RoleBinding
+  namespace: default # Must be in the same namespace as the Role
+subjects:
+  # List of subjects (users, groups, or service accounts) to bind the Role to.
+  - kind: User # Type of subject
+    name: jane # Name of the user (case-sensitive). This user must be authenticated by the K8s API server.
+    apiGroup: rbac.authorization.k8s.io # API group for User/Group subjects
+  # Example for a Group:
+  # - kind: Group
+  #   name: developers
+  #   apiGroup: rbac.authorization.k8s.io
+  # Example for a ServiceAccount:
+  # - kind: ServiceAccount
+  #   name: my-app-sa
+  #   namespace: default # ServiceAccounts are namespaced
+roleRef:
+  # Reference to the Role being granted.
+  kind: Role # Must be Role (not ClusterRole) for a RoleBinding
+  name: pod-reader # Name of the Role created earlier
+  apiGroup: rbac.authorization.k8s.io # API group for Roles/ClusterRoles

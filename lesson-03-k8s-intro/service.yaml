@@ -1,0 +1,37 @@
+# Kubernetes Service Manifest
+# This defines the communication line or network access point for our deployed heroes (Pods).
+apiVersion: v1 # Specifies the API version for Services
+kind: Service # Specifies the type of Kubernetes object: a Service
+metadata:
+  # Name of the Service object within Kubernetes.
+  name: hero-registry-service
+  # Optional: Labels for organization.
+  labels:
+    app: hero-registry # Label identifying this service relates to 'hero-registry'
+spec:
+  # Selector tells the Service which Pods to send traffic to.
+  # It MUST match the labels of the Pods created by the Deployment (spec.template.metadata.labels).
+  selector:
+    app: hero-registry # Send traffic to Pods with the label 'app: hero-registry'
+
+  # Defines how the Service exposes the Pods.
+  ports:
+    # List of ports the Service will expose.
+    - name: http # Optional name for the port.
+      protocol: TCP # Protocol used.
+      # Port on the Service itself (within the cluster network).
+      # Other Pods can reach our app at hero-registry-service:80
+      port: 80
+      # Port on the Pods that the Service should forward traffic to.
+      # This MUST match the containerPort defined in the Deployment.
+      targetPort: 8000
+
+  # Type of Service determines how it's exposed.
+  # ClusterIP: (Default) Exposes the Service on an internal IP within the cluster. Only reachable from within the cluster.
+  # NodePort: Exposes the Service on each Node's IP at a static port. Reachable from outside the cluster (via NodeIP:NodePort).
+  # LoadBalancer: Creates an external load balancer (if supported by cloud provider/infra) to expose the Service.
+  # ExternalName: Maps the Service to an external DNS name.
+  # Analogy: ClusterIP is like an internal comms channel within the Avengers Tower.
+  # NodePort is like opening a specific window on each floor for external access.
+  # LoadBalancer is like having Happy Hogan direct all external traffic via one main entrance.
+  type: ClusterIP # We'll start with ClusterIP for internal access first. We'll expose it externally later with Ingress.

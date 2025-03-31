@@ -1,0 +1,39 @@
+# Kubernetes Ingress Manifest
+# This defines rules for routing external HTTP traffic to internal Services.
+# Analogy: Heimdall at the Bifrost Bridge, directing visitors from other realms (external traffic)
+# based on their destination (hostname) to the correct location in Asgard (Service).
+apiVersion: networking.k8s.io/v1 # API version for Ingress
+kind: Ingress # Type of object
+metadata:
+  name: hero-registry-ingress # Name of the Ingress resource
+  # namespace: default # Optional: specify namespace if not default
+  # Optional annotations can configure Ingress controller behavior (e.g., redirects, timeouts)
+  # annotations:
+  #   kubernetes.io/ingress.class: "traefik" # Often needed, specifies which controller handles this
+  #   traefik.ingress.kubernetes.io/router.entrypoints: web # Use 'web' entrypoint (HTTP) for Traefik
+spec:
+  # IngressClassName specifies which Ingress Controller should implement this Ingress.
+  # K3s typically deploys Traefik with an IngressClass named 'traefik'.
+  # Use 'kubectl get ingressclass' to verify the name in your cluster.
+  ingressClassName: traefik # Assuming default K3s Traefik IngressClass name
+  rules:
+    # Define routing rules based on hostname.
+    - host: hero-registry.komebacklab.local # IMPORTANT: Replace if you prefer a different hostname
+      http:
+        paths:
+          # Define paths for this host.
+          - path: / # Route all traffic for the host starting with '/'
+            pathType: Prefix # Match based on URL prefix
+            backend:
+              # Specify the internal Service to route traffic to.
+              service:
+                # Name of the Service created in Lesson 3.
+                name: hero-registry-service
+                port:
+                  # Port number defined in the Service (NOT the container's targetPort directly).
+                  number: 80
+  # --- TLS Configuration (Covered in Lesson 7) ---
+  # tls:
+  # - hosts:
+  #   - hero-registry.komebacklab.local
+  #   secretName: hero-registry-tls-secret # We'll create this with Cert-Manager later

@@ -1,0 +1,108 @@
+# This file defines the Continuous Integration and Continuous Deployment pipeline for GitLab.
+# Think of it as the automated flight plan and launch sequence managed by Mission Control (GitLab).
+
+# Define the stages of our pipeline. Jobs in earlier stages must complete successfully
+# before jobs in later stages can start.
+# Analogy: Stages are like phases of a rocket launch: Pre-flight checks, Liftoff, Orbit insertion.
+stages:
+  - build
+  # - test # We'll add testing in a later lesson!
+  - push
+
+# Define variables used throughout the pipeline.
+# CI_REGISTRY_IMAGE is often automatically set by GitLab if the Container Registry is enabled,
+# but we are using our own Harbor instance (harbor.komebacklab.local).
+# We construct the image name using the Harbor registry URL, project name (adjust if needed),
+# and the app name. The tag will use the commit SHA for uniqueness.
+# Analogy: These are standard operating parameters for the mission.
+variables:
+  # IMPORTANT: Replace 'your-harbor-project' with the actual project name in your Harbor instance.
+  HARBOR_PROJECT_NAME: "your-harbor-project"
+  # Assuming the app is named 'hero-registry'. Adjust if you prefer a different name.
+  APP_NAME: "hero-registry"
+  # Construct the full image path for Harbor.
+  # $CI_COMMIT_SHORT_SHA is a predefined GitLab variable representing the short commit ID.
+  CONTAINER_IMAGE: harbor.komebacklab.local/${HARBOR_PROJECT_NAME}/${APP_NAME}:${CI_COMMIT_SHORT_SHA}
+  CONTAINER_IMAGE_LATEST: harbor.komebacklab.local/${HARBOR_PROJECT_NAME}/${APP_NAME}:latest
+
+# --- Build Stage ---
+# Job definition for building the Docker image.
+build_image:
+  stage: build
+  # Specify the Docker-in-Docker (dind) service to allow building images inside the runner.
+  # Analogy: Bringing a portable suit assembly unit (Docker daemon) into the main workshop (GitLab Runner).
+  image: docker:24.0.5 # Use an official Docker image for the job
+  services:
+    - docker:24.0.5-dind # Docker-in-Docker service
+  # Define environment variables needed specifically for Docker-in-Docker.
+  variables:
+    # Instruct Docker client how to connect to the dind service.
+    DOCKER_HOST: tcp://docker:2376
+    # Use TLS but disable verification for the dind service connection (common setup).
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: "" # Changed from 1 to empty string for broader compatibility
+    DOCKER_CERT_PATH: "/certs/client"
+  # Ensure the dind service is ready before starting the script.
+  before_script:
+    - echo "Waiting for Docker daemon..."
+    - | # Use '|' for multi-line script block
+      retry_count=0
+      max_retries=10
+      sleep_time=5
+      until docker info > /dev/null 2>&1; do
+        retry_count=$((retry_count + 1))
+        if [ ${retry_count} -ge ${max_retries} ]; then
+          echo "Docker daemon did not start after ${max_retries} retries."
+          exit 1
+        fi
+        echo "Waiting for docker daemon... Retry ${retry_count}/${max_retries}"
+        sleep ${sleep_time}
+      done
+      echo "Docker daemon is ready."
+    # Login to Harbor. Uses GitLab CI/CD variables for credentials (see Lesson Guide).
+    # $HARBOR_USER and $HARBOR_PASSWORD must be configured in GitLab CI/CD settings.
+    - echo "Logging in to Harbor: harbor.komebacklab.local"
+    - echo "$HARBOR_PASSWORD" | docker login harbor.komebacklab.local -u "$HARBOR_USER" --password-stdin
+  script:
+    # Build the Docker image using the Dockerfile from Lesson 1.
+    # We assume the .gitlab-ci.yml is in the root, and Dockerfile is in lesson-01-recruit.
+    # Adjust the path './lesson-01-recruit' if your project structure differs.
+    - echo "Building Docker image: ${CONTAINER_IMAGE}"
+    - docker build -t "${CONTAINER_IMAGE}" -f ./lesson-01-recruit/Dockerfile ./lesson-01-recruit
+    # Also tag as 'latest' for convenience (optional, but common).
+    - docker tag "${CONTAINER_IMAGE}" "${CONTAINER_IMAGE_LATEST}"
+    - echo "Build complete."
+  # Only run this job on commits to the main/master branch (adjust branch name if needed).
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+
+# --- Push Stage ---
+# Job definition for pushing the built image to Harbor.
+push_image:
+  stage: push
+  # Use the same Docker-in-Docker setup as the build stage.
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: ""
+    DOCKER_CERT_PATH: "/certs/client"
+  needs: # Specify that this job depends on 'build_image' completing successfully.
+    - build_image
+  before_script:
+    # Login to Harbor again (authentication might expire between stages).
+    - echo "Logging in to Harbor: harbor.komebacklab.local"
+    - echo "$HARBOR_PASSWORD" | docker login harbor.komebacklab.local -u "$HARBOR_USER" --password-stdin
+  script:
+    # Push the specifically tagged image (with commit SHA).
+    - echo "Pushing image: ${CONTAINER_IMAGE}"
+    - docker push "${CONTAINER_IMAGE}"
+    # Push the 'latest' tag as well.
+    - echo "Pushing image: ${CONTAINER_IMAGE_LATEST}"
+    - docker push "${CONTAINER_IMAGE_LATEST}"
+    - echo "Push complete."
+  # Only run this job on commits to the main/master branch.
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'

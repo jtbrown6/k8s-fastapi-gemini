@@ -1,0 +1,76 @@
+# Kubernetes StatefulSet Example Manifest
+# Demonstrates managing pods with stable identities.
+# Analogy: Managing the Hulk requires special protocols. You can't just replace him
+# like an Iron Man drone (Deployment/ReplicaSet). Each instance (Hulk-0, Hulk-1)
+# needs a stable identity and potentially unique storage/configuration.
+apiVersion: apps/v1
+kind: StatefulSet # Type of object: StatefulSet
+metadata:
+  name: web-statefulset # Name of the StatefulSet
+spec:
+  # Selector must match the labels of the Pod template.
+  selector:
+    matchLabels:
+      app: nginx-stateful # Label for selecting Pods managed by this StatefulSet
+  # ServiceName is REQUIRED and must match the name of a Headless Service
+  # that controls the network domain for the StatefulSet. This provides stable DNS names.
+  serviceName: "nginx-headless-svc" # Name of the associated Headless Service (see below)
+  replicas: 3 # Number of desired Pods (e.g., web-statefulset-0, web-statefulset-1, web-statefulset-2)
+  # Pods are created sequentially (0, 1, 2) and terminated in reverse order (2, 1, 0).
+  template:
+    metadata:
+      labels:
+        app: nginx-stateful # Labels applied to each Pod
+    spec:
+      terminationGracePeriodSeconds: 10 # How long to wait before forcefully killing Pod
+      containers:
+      - name: nginx
+        image: registry.k8s.io/nginx-slim:0.8 # Simple Nginx image
+        ports:
+        - containerPort: 80
+          name: web
+        # --- Example Volume Mount using VolumeClaimTemplates ---
+        # volumeMounts:
+        # - name: www-storage # Must match a name in volumeClaimTemplates
+        #   mountPath: /usr/share/nginx/html
+
+  # --- Volume Claim Templates ---
+  # Defines templates for PersistentVolumeClaims. A unique PVC will be created
+  # for each Pod instance based on this template, providing stable, unique storage.
+  # The PVC name will be <volume-name>-<statefulset-name>-<ordinal-index>.
+  # Analogy: Automatically provisioning a unique, reinforced containment cell (PVC)
+  # for each Hulk instance (Pod) as it's created.
+  # volumeClaimTemplates:
+  # - metadata:
+  #     name: www-storage # Name of the volume claim template (used in volumeMounts)
+  #   spec:
+  #     accessModes: [ "ReadWriteOnce" ] # Typically RWO for per-instance storage
+  #     # IMPORTANT: Replace with your actual StorageClass if using this section
+  #     storageClassName: "your-rwo-storageclass-name"
+  #     resources:
+  #       requests:
+  #         storage: 1Gi # Each Pod gets its own 1Gi volume
+
+---
+# Headless Service for StatefulSet Network Identity
+# A Headless Service doesn't have a ClusterIP and doesn't load balance.
+# Instead, it creates DNS A records for each Pod directly, like:
+# <pod-name>.<service-name>.<namespace>.svc.cluster.local
+# (e.g., web-statefulset-0.nginx-headless-svc.default.svc.cluster.local)
+# This gives each Pod a stable, unique network identity.
+# Analogy: Giving each Hulk instance a unique, direct communication frequency.
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-headless-svc # Must match serviceName in the StatefulSet
+  labels:
+    app: nginx-stateful
+spec:
+  ports:
+  - port: 80
+    name: web
+  # clusterIP: None makes this a Headless Service.
+  clusterIP: None
+  # Selector must match the labels of the Pods managed by the StatefulSet.
+  selector:
+    app: nginx-stateful

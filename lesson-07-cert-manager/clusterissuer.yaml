@@ -1,0 +1,14 @@
+# Kubernetes ClusterIssuer Manifest (for Cert-Manager)
+# Defines a cluster-wide mechanism for issuing certificates using your custom CA.
+# Analogy: Establishing Odin's authority (the CA) throughout Asgard (the cluster),
+# allowing Heimdall (Ingress Controller) via Cert-Manager to request officially blessed seals (TLS certs).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer # Cluster-wide issuer, usable in any namespace
+metadata:
+  name: komebacklab-ca-issuer # Name for this issuer
+spec:
+  ca:
+    # Reference to the Secret containing the CA's certificate and private key.
+    # This Secret needs to be created separately (see Lesson Guide).
+    # It must contain keys named 'tls.crt' (CA cert) and 'tls.key' (CA private key).
+    secretName: komebacklab-ca-key-pair # Name of the Secret holding the CA keypair

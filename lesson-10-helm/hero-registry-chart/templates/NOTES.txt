@@ -1,0 +1,59 @@
+{{- $fullName := include "hero-registry-chart.fullname" . -}}
+{{- $ingressPaths := .Values.ingress.hosts | default (dict) | pluck "paths" | first | default (list) -}}
+{{- $ingressPath := $ingressPaths | first | default (dict) | get "path" | default "/" -}}
+{{- $ingressHost := .Values.ingress.hosts | default (dict) | pluck "host" | first | default "" -}}
+{{- $ingressEnabled := .Values.ingress.enabled -}}
+{{- $isTlsEnabled := and .Values.ingress.tls (eq (len .Values.ingress.tls) 1) }}
+
+The Hero Registry application has been deployed via Helm chart: {{ .Release.Name }}
+
+NOTES:
+1.  **Get the application URL:**
+    {{- if $ingressEnabled }}
+    {{- if $isTlsEnabled }}
+    Application is accessible at: https://{{ $ingressHost }}{{ $ingressPath }}
+    NOTE: Ensure your client trusts the CA used by ClusterIssuer '{{ .Values.ingress.annotations | get "cert-manager.io/cluster-issuer" }}'
+          and that DNS for '{{ $ingressHost }}' points to your Ingress controller IP.
+          The TLS certificate is stored in Secret '{{ .Values.ingress.tls | first | get "secretName" }}'.
+    {{- else }}
+    Application is accessible at: http://{{ $ingressHost }}{{ $ingressPath }}
+    NOTE: Ensure DNS for '{{ $ingressHost }}' points to your Ingress controller IP.
+    {{- end }}
+    {{- else }}
+    Ingress is disabled. To access the application, try port-forwarding:
+
+    export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "hero-registry-chart.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+    echo "Visit http://127.0.0.1:8080 to use the application"
+    kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:{{ .Values.service.targetPort }}
+    {{- end }}
+
+2.  **Image Repository:**
+    The application is using the image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+
+3.  **Persistence:**
+    {{- if and .Values.persistence.enabled .Values.persistence.existingClaim }}
+    Persistence is enabled using the existing PVC: {{ .Values.persistence.existingClaim }}
+    Data is mounted at: {{ .Values.persistence.mountPath }}
+    {{- else if .Values.persistence.enabled }}
+    Persistence is enabled but relies on dynamic provisioning or a PVC created outside the chart.
+    Data is mounted at: {{ .Values.persistence.mountPath }}
+    {{- else }}
+    Persistence is disabled. Data will be lost if the Pod restarts.
+    {{- end }}
+
+4.  **Configuration:**
+    The application uses configuration from:
+    {{- if .Values.configMapName }}
+    - ConfigMap: {{ .Values.configMapName }}
+    {{- else }}
+    - No external ConfigMap referenced.
+    {{- end }}
+    {{- if .Values.secretName }}
+    - Secret: {{ .Values.secretName }}
+    {{- else }}
+    - No external Secret referenced.
+    {{- end }}
+
+5.  **Check Status:**
+    To check the status of your deployment, run:
+    kubectl rollout status deployment/{{ $fullName }} --namespace {{ .Release.Namespace }}

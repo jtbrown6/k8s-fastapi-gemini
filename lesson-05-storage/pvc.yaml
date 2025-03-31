@@ -1,0 +1,31 @@
+# Kubernetes PersistentVolumeClaim (PVC) Manifest
+# This is the application's request for storage resources.
+# Analogy: Requesting access to one of the Infinity Stones (storage) from the Collector (StorageClass/Provisioner).
+apiVersion: v1 # API version for PVCs
+kind: PersistentVolumeClaim # Type of object
+metadata:
+  name: hero-registry-data-pvc # Name of the PVC
+  # namespace: default # Optional: specify namespace if not default
+spec:
+  # StorageClass tells Kubernetes *how* to provision the storage.
+  # You mentioned using nfs-subdir-external-provisioner. The StorageClass name
+  # created for it needs to be specified here. Common names might be 'nfs-client', 'managed-nfs-storage', etc.
+  # IMPORTANT: Replace 'your-nfs-storageclass-name' with the actual name of your NFS StorageClass.
+  # You can find it using: kubectl get storageclass
+  storageClassName: your-nfs-storageclass-name
+
+  # Access Modes define how the volume can be mounted.
+  # ReadWriteOnce (RWO): Mountable as read-write by a single Node.
+  # ReadOnlyMany (ROX): Mountable as read-only by many Nodes.
+  # ReadWriteMany (RWX): Mountable as read-write by many Nodes.
+  # NFS typically supports RWX.
+  accessModes:
+    - ReadWriteMany # Or ReadWriteOnce if your NFS setup/StorageClass only supports that
+
+  # Resources defines the amount of storage requested.
+  resources:
+    requests:
+      # How much storage does the application need?
+      # For NFS, the size might sometimes be less critical depending on the provisioner,
+      # but it's good practice to specify a reasonable request.
+      storage: 1Gi # Request 1 Gibibyte of storage. Adjust as needed.

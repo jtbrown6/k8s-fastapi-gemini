@@ -1,0 +1,21 @@
+# Kubernetes ConfigMap Manifest
+# This stores non-sensitive configuration data as key-value pairs.
+# Think of it as the publicly posted mission briefing or Stark Industries public memo.
+apiVersion: v1 # API version for ConfigMaps
+kind: ConfigMap # Type of object
+metadata:
+  name: hero-registry-config # Name of the ConfigMap
+  # namespace: default # Optional: specify namespace if not default
+spec:
+  # Data contains the configuration key-value pairs.
+  data:
+    # Key: GREETING_MESSAGE
+    # Value: The message string
+    GREETING_MESSAGE: "Welcome to the Hero Registry, Recruit!"
+
+    # Key: LOG_LEVEL
+    # Value: The desired log level (e.g., INFO, DEBUG)
+    LOG_LEVEL: "INFO"
+
+    # You can add other non-sensitive configuration here as needed.
+    # EXAMPLE_CONFIG: "some_value"

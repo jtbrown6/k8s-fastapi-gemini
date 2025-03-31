@@ -1,0 +1,56 @@
+# Kubernetes Deployment Manifest (Lesson 9 Update)
+# Adds Prometheus scraping annotations and uses updated image.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hero-registry-deployment
+  labels:
+    app: hero-registry
+spec:
+  replicas: 1 # Keep at 1 for simple file storage
+  selector:
+    matchLabels:
+      app: hero-registry
+  template:
+    metadata:
+      labels:
+        app: hero-registry # Pod label for Service selector
+      # --- Prometheus Annotations ---
+      # These annotations tell Prometheus (if configured for annotation scraping)
+      # how to find and scrape the /metrics endpoint on this Pod.
+      # Analogy: Placing a specific sensor beacon on the suit that the Eye of Agamotto (Prometheus)
+      # knows how to detect and read.
+      annotations:
+        prometheus.io/scrape: "true" # Enable scraping for this Pod
+        prometheus.io/path: "/metrics" # Path where metrics are exposed (default for prometheus-fastapi-instrumentator)
+        prometheus.io/port: "8000" # Port where the application listens (containerPort)
+    spec:
+      containers:
+        - name: hero-registry-api
+          # IMPORTANT: Update this image tag when you build a new image with Lesson 9 code!
+          # Example: harbor.komebacklab.local/your-harbor-project/hero-registry:lesson-09
+          image: harbor.komebacklab.local/your-harbor-project/hero-registry:latest # Replace project name!
+          # Use the new requirements file with prometheus client
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http # Optional: Name the port
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: hero-registry-config
+            - secretRef:
+                name: hero-registry-secret
+
+          volumeMounts:
+            - name: hero-data-storage
+              mountPath: /data
+
+      volumes:
+        - name: hero-data-storage
+          persistentVolumeClaim:
+            claimName: hero-registry-data-pvc
+
+      imagePullSecrets:
+        - name: harbor-creds

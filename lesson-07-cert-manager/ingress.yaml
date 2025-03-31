@@ -1,0 +1,47 @@
+# Kubernetes Ingress Manifest (Lesson 7 Update)
+# Adds TLS configuration using Cert-Manager and our custom ClusterIssuer.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hero-registry-ingress
+  # namespace: default
+  annotations:
+    # --- Cert-Manager Annotation ---
+    # Tell Cert-Manager to use the specified ClusterIssuer to obtain a certificate for this Ingress.
+    # Analogy: Adding a note to Heimdall's instructions: "Get an official blessing (certificate)
+    # from Odin (komebacklab-ca-issuer) for this route."
+    cert-manager.io/cluster-issuer: komebacklab-ca-issuer # Must match the ClusterIssuer name
+
+    # --- Optional: Traefik specific annotations for HTTPS ---
+    # Ensure Traefik uses the 'websecure' (HTTPS) entrypoint for this router.
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # Tell Traefik that TLS is enabled for this router.
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # Optional: Redirect HTTP to HTTPS (requires 'web' entrypoint to also be configured on Traefik)
+    # traefik.ingress.kubernetes.io/router.middlewares: default-redirect-https@kubernetescrd
+spec:
+  ingressClassName: traefik # Assuming default K3s Traefik IngressClass name
+  rules:
+    - host: hero-registry.komebacklab.local # Must match the hostname in the TLS section
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hero-registry-service
+                port:
+                  number: 80 # Traffic inside the cluster (Ingress -> Service) can still be HTTP
+
+  # --- TLS Configuration ---
+  # Enable TLS for the specified hosts. Cert-Manager will see this section,
+  # check the annotation, and request a certificate from the ClusterIssuer.
+  # It will then store the obtained certificate in the specified Secret.
+  # The Ingress Controller (Traefik) will automatically use this Secret for TLS termination.
+  tls:
+    - hosts:
+        # List of hosts included in the certificate. Must match spec.rules.host.
+        - hero-registry.komebacklab.local
+      # Name of the Secret where Cert-Manager will store the generated TLS certificate (key and cert).
+      # This Secret will be automatically created and managed by Cert-Manager.
+      secretName: hero-registry-tls-secret

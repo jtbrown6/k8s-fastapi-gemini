@@ -1,0 +1,73 @@
+# Kubernetes Deployment Manifest (Lesson 4 Update)
+# Adds environment variables from ConfigMap and Secret.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hero-registry-deployment
+  labels:
+    app: hero-registry
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hero-registry
+  template:
+    metadata:
+      labels:
+        app: hero-registry
+    spec:
+      containers:
+        - name: hero-registry-api
+          # IMPORTANT: Update this image tag when you build a new image with Lesson 4 code!
+          # For now, we might still use :latest or a specific tag from Lesson 2 build.
+          # Example using a new tag convention (lesson number):
+          # image: harbor.komebacklab.local/your-harbor-project/hero-registry:lesson-04
+          image: harbor.komebacklab.local/your-harbor-project/hero-registry:latest # Replace project name!
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+
+          # --- Environment Variables Injection ---
+          # Inject all key-value pairs from the ConfigMap as environment variables.
+          # Analogy: Giving the hero access to the public mission briefing board.
+          envFrom:
+            - configMapRef:
+                # Name of the ConfigMap created earlier.
+                name: hero-registry-config
+          # Inject all key-value pairs from the Secret as environment variables.
+          # Analogy: Giving the hero access to their classified mission file.
+          # Be cautious about injecting *all* secrets as env vars; sometimes mounting as files is safer.
+            - secretRef:
+                # Name of the Secret created earlier.
+                name: hero-registry-secret
+
+          # --- Alternatively, inject specific keys (more verbose but more explicit) ---
+          # env:
+          #   # Inject GREETING_MESSAGE from ConfigMap 'hero-registry-config' key 'GREETING_MESSAGE'
+          #   - name: GREETING_MESSAGE
+          #     valueFrom:
+          #       configMapKeyRef:
+          #         name: hero-registry-config
+          #         key: GREETING_MESSAGE
+          #   # Inject LOG_LEVEL from ConfigMap 'hero-registry-config' key 'LOG_LEVEL'
+          #   - name: LOG_LEVEL
+          #     valueFrom:
+          #       configMapKeyRef:
+          #         name: hero-registry-config
+          #         key: LOG_LEVEL
+          #   # Inject API_KEY from Secret 'hero-registry-secret' key 'API_KEY'
+          #   - name: API_KEY
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: hero-registry-secret
+          #         key: API_KEY
+          #   # Inject DATABASE_PASSWORD from Secret 'hero-registry-secret' key 'DATABASE_PASSWORD'
+          #   - name: DATABASE_PASSWORD
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: hero-registry-secret
+          #         key: DATABASE_PASSWORD
+
+      imagePullSecrets:
+        - name: harbor-creds # Secret for pulling image from Harbor (from Lesson 3)

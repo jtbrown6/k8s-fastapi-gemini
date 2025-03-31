@@ -1,0 +1,16 @@
+# Kubernetes Role Manifest
+# Defines a set of permissions within a specific namespace.
+# Analogy: Defining a specific S.H.I.E.L.D. clearance level (e.g., "Level 4 - Pod Viewer")
+# that grants certain access rights within a specific department (namespace).
+apiVersion: rbac.authorization.k8s.io/v1 # API version for RBAC
+kind: Role # Type of object: Role (namespaced permissions)
+metadata:
+  namespace: default # Role is specific to the 'default' namespace
+  name: pod-reader # Name of the Role
+rules:
+  # List of permission rules.
+  - apiGroups: [""] # "" indicates the core API group (for Pods, Services, etc.)
+    # List of resource types this rule applies to.
+    resources: ["pods", "pods/log"] # Allow access to Pods and their logs
+    # List of verbs (actions) allowed on these resources.
+    verbs: ["get", "watch", "list"] # Allow read-only actions

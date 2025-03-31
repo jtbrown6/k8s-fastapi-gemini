@@ -1,0 +1,56 @@
+# Kubernetes Deployment Manifest
+# This is the strategic plan for deploying our hero team (the application Pods).
+apiVersion: apps/v1 # Specifies the API version for Deployments
+kind: Deployment # Specifies the type of Kubernetes object: a Deployment
+metadata:
+  # Name of the Deployment object within Kubernetes.
+  name: hero-registry-deployment
+  # Optional: Labels help organize and select objects. Think team affiliations.
+  labels:
+    app: hero-registry # Label identifying this app as 'hero-registry'
+spec:
+  # How many identical copies (Pods) of our application should be running?
+  # Analogy: How many Iron Man suits should be active on this mission?
+  replicas: 2 # Let's start with two replicas for basic availability.
+  # Selector tells the Deployment which Pods it manages. It must match the Pod template's labels.
+  selector:
+    matchLabels:
+      app: hero-registry # Find Pods with the label 'app: hero-registry'
+  # Template describes the Pods that will be created.
+  template:
+    metadata:
+      # Labels applied to each Pod created by this Deployment. Must match spec.selector.matchLabels.
+      labels:
+        app: hero-registry # Each Pod gets this label.
+    spec:
+      # List of containers to run inside each Pod. We only have one for now.
+      containers:
+        - name: hero-registry-api # Name of the container within the Pod.
+          # The Docker image to use for this container.
+          # IMPORTANT: Replace 'your-harbor-project' with your actual Harbor project name.
+          # We'll use the 'latest' tag for simplicity in this first deployment.
+          # In real scenarios, you'd often use the specific commit SHA tag pushed by CI/CD.
+          image: harbor.komebacklab.local/your-harbor-project/hero-registry:latest
+          # Image pull policy: 'Always' ensures K8s tries to pull the image even if it exists locally.
+          # 'IfNotPresent' uses local image if available. Good for development/stable tags.
+          imagePullPolicy: Always # Or IfNotPresent if using stable tags locally often
+          # Ports that the container exposes.
+          ports:
+            - containerPort: 8000 # The port our FastAPI app listens on inside the container.
+              protocol: TCP # Protocol used (usually TCP for HTTP)
+          # Optional: Resource requests and limits (Good practice, but omitted for initial simplicity)
+          # resources:
+          #   requests:
+          #     memory: "64Mi"
+          #     cpu: "100m" # 0.1 CPU core
+          #   limits:
+          #     memory: "128Mi"
+          #     cpu: "250m" # 0.25 CPU core
+
+      # IMPORTANT for private registries like Harbor:
+      # Kubernetes needs credentials to pull the image from harbor.komebacklab.local.
+      # This requires creating a Secret named 'harbor-creds' (or similar) in the same namespace
+      # containing the Docker credentials, and referencing it here.
+      # See Lesson 3 Guide for instructions on creating this secret.
+      imagePullSecrets:
+        - name: harbor-creds # Name of the Secret containing Harbor credentials.

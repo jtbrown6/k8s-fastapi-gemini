@@ -1,0 +1,5 @@
+fastapi
+uvicorn[standard]
+prometheus-fastapi-instrumentator
+# Add other dependencies if needed for structured logging later
+python-json-logger # For structured JSON logging
