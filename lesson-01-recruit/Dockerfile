@@ -34,7 +34,15 @@ FROM base as final
 
 # Copy the installed dependencies from the builder stage.
 # We take the assembled components and put them into the final suit.
-COPY --from=builder /app /app
+
+# ----FIXING AN ERROR-----
+# PREVIOUS CODE HAD THIS LINE: issue is that the below line only has the /app directory from builder
+#   which has the requirements.txt but doesn't have the python packages
+# COPY --from=builder /app /app
+
+# Copy the installed packages (site-packages and executables) from the builder stage
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy the application code into the container.
 # This is like installing the final software and AI into the suit.
